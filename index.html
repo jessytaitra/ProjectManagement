@@ -1,0 +1,1035 @@
+const SUPABASE_URL  = 'https://sippzngyuszavmkpzrno.supabase.co';
+const SUPABASE_ANON = 'sippzngyuszavmkpzrno';
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>外貿協會 表單專案追蹤 · Supabase 協作版</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0c10;--surface:#111318;--surface2:#181c24;--surface3:#1e2330;
+  --border:rgba(255,255,255,0.07);--border-accent:rgba(99,179,237,0.3);
+  --text:#e8eaf0;--text-muted:#6b7280;--text-dim:#9ca3af;
+  --accent:#63b3ed;--accent2:#9f7aea;
+  --green:#68d391;--yellow:#f6e05e;--orange:#ed8936;--red:#fc8181;
+  --teal:#4fd1c5;--pink:#f687b3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(99,179,237,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(99,179,237,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrapper{position:relative;z-index:1}
+
+/* ── HEADER ── */
+header{padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(10,12,16,.96);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.header-title{font-size:16px;font-weight:700}
+.header-subtitle{font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.date-badge{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);background:rgba(99,179,237,.1);border:1px solid rgba(99,179,237,.2);border-radius:6px;padding:4px 10px}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);font-size:12px;cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif;white-space:nowrap}
+.btn:hover{background:var(--surface3);color:var(--text)}
+.btn-primary{background:rgba(99,179,237,.15);border-color:rgba(99,179,237,.35);color:var(--accent)}
+.btn-primary:hover{background:rgba(99,179,237,.25)}
+.btn-exec{background:rgba(159,122,234,.15);border-color:rgba(159,122,234,.35);color:var(--accent2)}
+.btn-exec:hover{background:rgba(159,122,234,.25)}
+.btn-danger{background:rgba(252,129,129,.1);border-color:rgba(252,129,129,.25);color:var(--red)}
+.btn-danger:hover{background:rgba(252,129,129,.2)}
+.user-pill{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;background:var(--surface3);border:1px solid var(--border);font-size:12px;cursor:pointer}
+.user-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)}
+.stat-card{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:3px;cursor:pointer;transition:background .2s;border-right:1px solid var(--border)}
+.stat-card:last-child{border-right:none}
+.stat-card:hover{background:var(--surface2)}
+.stat-card.active{background:var(--surface2);border-bottom:2px solid var(--accent)}
+.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.stat-num{font-size:24px;font-weight:900;letter-spacing:-1px;line-height:1}
+.stat-sub{font-size:10px;color:var(--text-muted)}
+
+/* ── LAYOUT ── */
+.main{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 130px)}
+.sidebar{border-right:1px solid var(--border);padding:16px 0;background:var(--surface);position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto}
+.sidebar-heading{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;padding:0 16px 5px;margin-top:12px}
+.sidebar-item{display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;transition:all .15s;border-left:2px solid transparent;font-size:13px;color:var(--text-dim)}
+.sidebar-item:hover{background:var(--surface2);color:var(--text)}
+.sidebar-item.active{background:rgba(99,179,237,.07);border-left-color:var(--accent);color:var(--accent)}
+.sidebar-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sidebar-count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface3);border-radius:4px;padding:1px 6px;color:var(--text-muted)}
+.content{padding:20px 24px;overflow-y:auto}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.search-box{flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 13px;color:var(--text);font-size:13px;font-family:'Noto Sans TC',sans-serif;outline:none;transition:border-color .2s}
+.search-box:focus{border-color:var(--border-accent)}
+.search-box::placeholder{color:var(--text-muted)}
+.view-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.view-btn{padding:7px 11px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;transition:all .15s}
+.view-btn.active{background:rgba(99,179,237,.15);color:var(--accent)}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.section-title{font-size:15px;font-weight:700}
+.section-count{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted);background:var(--surface2);padding:2px 8px;border-radius:4px}
+.sync-badge{font-size:11px;color:var(--green);background:rgba(104,211,145,.1);border:1px solid rgba(104,211,145,.2);border-radius:12px;padding:2px 9px;margin-left:auto;display:flex;align-items:center;gap:5px}
+.sync-badge.syncing{color:var(--yellow);background:rgba(246,224,94,.1);border-color:rgba(246,224,94,.2)}
+.sync-badge.error{color:var(--red);background:rgba(252,129,129,.1);border-color:rgba(252,129,129,.2)}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{background:var(--surface2)}
+th{padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-weight:400;white-space:nowrap;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+th:hover{color:var(--text)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+tbody tr:hover{background:var(--surface2)}
+tbody tr:last-child{border-bottom:none}
+td{padding:11px 12px;vertical-align:middle}
+.code-badge{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;background:var(--surface3);color:var(--accent);border:1px solid rgba(99,179,237,.15);white-space:nowrap}
+.task-name{font-weight:500;line-height:1.4}
+.task-unit{font-size:11px;color:var(--text-muted);margin-top:2px}
+.person-tag{font-size:12px;color:var(--text-dim);background:var(--surface3);padding:2px 8px;border-radius:12px;white-space:nowrap}
+.stage-pipeline{display:flex;align-items:center;gap:2px}
+.stage-step{flex:1;height:17px;border-radius:3px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:8px;font-family:'JetBrains Mono',monospace;font-weight:700;min-width:24px}
+.stage-step.active{animation:pulse-stage 2s ease-in-out infinite}
+.stage-step.pending{opacity:.25}
+@keyframes pulse-stage{0%,100%{opacity:.8}50%{opacity:1}}
+.status-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+.status-dot{width:5px;height:5px;border-radius:50%}
+.status-maint{background:rgba(246,135,179,.12);color:var(--pink);border:1px solid rgba(246,135,179,.2)}
+.status-dep{background:rgba(79,209,197,.12);color:var(--teal);border:1px solid rgba(79,209,197,.2)}
+.status-uat{background:rgba(104,211,145,.12);color:var(--green);border:1px solid rgba(104,211,145,.2)}
+.status-sit{background:rgba(246,224,94,.12);color:var(--yellow);border:1px solid rgba(246,224,94,.2)}
+.status-dev{background:rgba(237,137,54,.12);color:var(--orange);border:1px solid rgba(237,137,54,.2)}
+.status-sd{background:rgba(99,179,237,.12);color:var(--accent);border:1px solid rgba(99,179,237,.2)}
+.status-ra{background:rgba(159,122,234,.12);color:var(--accent2);border:1px solid rgba(159,122,234,.2)}
+.test-badges{display:flex;gap:3px;flex-wrap:wrap}
+.test-badge{font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:3px;font-weight:700}
+.test-badge.sit{background:rgba(246,224,94,.15);color:var(--yellow)}
+.test-badge.uat{background:rgba(104,211,145,.15);color:var(--green)}
+.test-badge.none{background:var(--surface3);color:var(--text-muted)}
+
+/* ── KANBAN ── */
+.kanban-board{display:none;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.kanban-col{background:var(--surface);border-radius:10px;border:1px solid var(--border);overflow:hidden}
+.kanban-col-header{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.kanban-col-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.kanban-col-count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted)}
+.kanban-cards{padding:9px;display:flex;flex-direction:column;gap:6px}
+.kanban-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:all .2s}
+.kanban-card:hover{border-color:var(--border-accent);transform:translateY(-1px)}
+.kanban-card-code{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:4px}
+.kanban-card-title{font-size:12px;font-weight:500;line-height:1.4;margin-bottom:6px}
+.kanban-card-footer{display:flex;align-items:center;justify-content:space-between}
+.kanban-card-pm{font-size:11px}
+.kanban-card-eng{font-size:11px;background:var(--surface3);padding:2px 7px;border-radius:10px;color:var(--text-dim)}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header-row{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+.modal-close{margin-left:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text-muted);cursor:pointer;font-size:12px;transition:all .15s;flex-shrink:0;font-family:'Noto Sans TC',sans-serif}
+.modal-close:hover{color:var(--text);background:var(--surface3)}
+.modal-body-inner{padding:20px 24px}
+.modal-section{margin-bottom:20px}
+.modal-section-title{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.info-item{background:var(--surface2);border-radius:8px;padding:10px}
+.info-item-label{font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+.info-item-value{font-size:13px;font-weight:500}
+.stage-detail-list{display:flex;flex-direction:column;gap:6px}
+.stage-detail-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2)}
+.stage-detail-item.done{border-color:rgba(104,211,145,.18)}
+.stage-detail-item.active{border-color:rgba(246,224,94,.28);background:rgba(246,224,94,.03)}
+.stage-detail-item.pending{opacity:.45}
+.stage-detail-icon{font-size:14px;flex-shrink:0}
+.stage-detail-name{font-size:13px;font-weight:600}
+.stage-detail-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
+.stage-detail-status{margin-left:auto;flex-shrink:0}
+.progress-bar-wrap{background:var(--surface3);border-radius:4px;height:5px;overflow:hidden;margin-top:10px}
+.progress-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--teal));transition:width .5s ease}
+.modal-actions{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+
+/* ── FORM ── */
+.form-row{margin-bottom:14px}
+.form-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:'Noto Sans TC',sans-serif;outline:none;transition:border-color .2s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--border-accent)}
+.form-select option{background:var(--surface2)}
+.form-textarea{resize:vertical;min-height:70px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-number{width:80px}
+
+/* ── HISTORY ── */
+.history-list{display:flex;flex-direction:column}
+.history-item{padding:11px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.history-item:last-child{border-bottom:none}
+.history-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;color:#fff}
+.history-content{flex:1}
+.history-who{font-size:12px;font-weight:600;color:var(--text)}
+.history-what{font-size:12px;color:var(--text-muted);margin-top:2px;line-height:1.6}
+.history-when{font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.htag{display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;margin:0 2px}
+.htag.field{background:rgba(99,179,237,.1);color:var(--accent)}
+.htag.old{background:rgba(252,129,129,.1);color:var(--red)}
+.htag.new{background:rgba(104,211,145,.1);color:var(--green)}
+.htag.create{background:rgba(159,122,234,.1);color:var(--accent2)}
+.htag.del{background:rgba(252,129,129,.1);color:var(--red)}
+
+/* ── EXEC DASHBOARD ── */
+.exec-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;overflow-y:auto;display:none}
+.exec-overlay.open{display:block}
+.exec-header{padding:24px 40px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px}
+.exec-title{font-size:22px;font-weight:900;letter-spacing:-0.5px}
+.exec-subtitle{font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.exec-body{padding:28px 40px;max-width:1200px;margin:0 auto}
+.exec-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.exec-kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px}
+.exec-kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-bottom:8px}
+.exec-kpi-num{font-size:38px;font-weight:900;letter-spacing:-2px;line-height:1}
+.exec-kpi-sub{font-size:12px;color:var(--text-muted);margin-top:5px}
+.exec-kpi-bar{height:3px;background:var(--surface3);border-radius:2px;margin-top:10px;overflow:hidden}
+.exec-kpi-bar-fill{height:100%;border-radius:2px;transition:width .8s ease}
+.exec-section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-bottom:14px}
+.exec-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
+.exec-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.exec-stage-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.exec-stage-label{font-size:12px;width:110px;flex-shrink:0}
+.exec-stage-bar-wrap{flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.exec-stage-bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+.exec-stage-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);width:24px;text-align:right}
+.exec-project-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.exec-project-row:last-child{border-bottom:none}
+.exec-project-name{color:var(--text-dim);flex:1}
+.divider{height:1px;background:var(--border);margin:14px 0}
+
+/* ── LOGIN ── */
+.login-overlay{position:fixed;inset:0;background:rgba(10,12,16,.98);z-index:500;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 40px;width:100%;max-width:400px;text-align:center}
+.login-logo{width:48px;height:48px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;font-family:'JetBrains Mono',monospace;margin:0 auto 16px}
+.login-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.login-sub{font-size:13px;color:var(--text-muted);margin-bottom:24px}
+.login-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:14px;font-family:'Noto Sans TC',sans-serif;outline:none;margin-bottom:12px;text-align:center;transition:border-color .2s}
+.login-input:focus{border-color:var(--border-accent)}
+.login-btn{width:100%;padding:11px;background:linear-gradient(135deg,var(--accent),var(--teal));border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.login-btn:hover{opacity:.85}
+
+/* ── SETUP OVERLAY ── */
+.setup-overlay{position:fixed;inset:0;background:rgba(10,12,16,.98);z-index:490;display:none;align-items:center;justify-content:center;overflow-y:auto;padding:20px}
+.setup-overlay.open{display:flex}
+.setup-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 36px;width:100%;max-width:580px}
+.setup-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.setup-sub{font-size:13px;color:var(--text-muted);margin-bottom:22px;line-height:1.7}
+.setup-step{background:var(--surface2);border-radius:10px;padding:14px 16px;margin-bottom:10px;border:1px solid var(--border)}
+.setup-step-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.setup-step-text{font-size:13px;line-height:1.7;color:var(--text-dim)}
+.setup-step-text code{background:var(--surface3);border-radius:4px;padding:1px 6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent)}
+.setup-step-text a{color:var(--accent);text-decoration:none}
+.setup-step-text a:hover{text-decoration:underline}
+.sql-block{background:var(--surface3);border-radius:8px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal);line-height:1.8;overflow-x:auto;margin-top:8px;border:1px solid var(--border)}
+.demo-btn{width:100%;padding:11px;background:rgba(104,211,145,.15);border:1px solid rgba(104,211,145,.3);border-radius:9px;color:var(--green);font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:8px}
+.demo-btn:hover{background:rgba(104,211,145,.25)}
+
+/* ── TOAST ── */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 16px;font-size:13px;display:flex;align-items:center;gap:9px;pointer-events:all;animation:toastIn .25s ease;min-width:220px;max-width:320px}
+.toast.success{border-color:rgba(104,211,145,.3);color:var(--green)}
+.toast.error{border-color:rgba(252,129,129,.3);color:var(--red)}
+.toast.info{border-color:var(--border-accent);color:var(--accent)}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── MISC ── */
+.fade-in{animation:fadeIn .25s ease forwards}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.empty-state{text-align:center;padding:48px;color:var(--text-muted);font-size:13px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+@media(max-width:960px){.main{grid-template-columns:1fr}.sidebar{display:none}.stats-row{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:600px){header{padding:12px 14px}.content{padding:12px}.stats-row{grid-template-columns:repeat(2,1fr)}.info-grid,.form-grid{grid-template-columns:1fr}.exec-kpi-row{grid-template-columns:repeat(2,1fr)}.exec-grid{grid-template-columns:1fr}.exec-body{padding:16px}}
+@media print{.exec-overlay.open{position:static}.header .btn{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ════════ LOGIN ════════ -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">PM</div>
+    <div class="login-title">外貿協會 專案追蹤</div>
+    <div class="login-sub">請輸入你的姓名以開始協作</div>
+    <input class="login-input" id="login-name" placeholder="例：Lily、Jess、美慧…" maxlength="20"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">進入系統</button>
+  </div>
+</div>
+
+<!-- ════════ SETUP ════════ -->
+<div class="setup-overlay" id="setup-overlay">
+  <div class="setup-box">
+    <div style="font-size:28px;margin-bottom:12px">⚡</div>
+    <div class="setup-title">Supabase 設定說明</div>
+    <div class="setup-sub">這個系統使用 Supabase 即時資料庫。請依以下步驟設定（約 10 分鐘），或先體驗 Demo 模式。</div>
+
+    <div class="setup-step">
+      <div class="setup-step-num">步驟 1 — 建立 Supabase 專案</div>
+      <div class="setup-step-text">前往 <a href="https://supabase.com" target="_blank">supabase.com</a>，用 GitHub 帳號免費註冊，建立一個新 Project（任意名稱，Region 選 <code>Southeast Asia</code>）。</div>
+    </div>
+
+    <div class="setup-step">
+      <div class="setup-step-num">步驟 2 — 建立兩個資料表</div>
+      <div class="setup-step-text">
+        在 Supabase 左側選 <code>SQL Editor</code>，貼上以下 SQL 並執行：
+        <div class="sql-block">-- 專案資料表
+create table projects (
+  id bigint generated always as identity primary key,
+  no integer,
+  code text,
+  name text,
+  unit text,
+  eng text,
+  pm text,
+  stage text default 'ra',
+  sit integer default 0,
+  uat integer default 0,
+  "statusRaw" text,
+  "updatedBy" text,
+  "updatedAt" timestamptz default now()
+);
+
+-- 修改歷史表
+create table history (
+  id bigint generated always as identity primary key,
+  "docId" text,
+  "projectName" text,
+  changes jsonb,
+  type text,
+  "user" text,
+  ts timestamptz default now()
+);
+
+-- 開啟 Realtime
+alter publication supabase_realtime add table projects;
+alter publication supabase_realtime add table history;</div>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="setup-step-num">步驟 3 — 複製 API 金鑰</div>
+      <div class="setup-step-text">
+        左側選 <code>Project Settings → API</code>，複製：<br>
+        • <code>Project URL</code>（例：https://abcxyz.supabase.co）<br>
+        • <code>anon public</code> 金鑰（長串 JWT）
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="setup-step-num">步驟 4 — 填入這個 HTML</div>
+      <div class="setup-step-text">
+        用記事本開啟此 HTML，找到 <code>⚙️ 填入你的 Supabase 設定</code>，貼入 URL 和 Key 後儲存。
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="setup-step-num">步驟 5 — 部署到 GitHub Pages（免費、無限次更新）</div>
+      <div class="setup-step-text">
+        1. 前往 <a href="https://github.com" target="_blank">github.com</a> 登入後，點右上角 <code>+</code> → <code>New repository</code><br>
+        2. 名稱隨意（例如 <code>project-tracker</code>），選 <code>Public</code>，按 <code>Create repository</code><br>
+        3. 點 <code>uploading an existing file</code>，把這個 HTML 改名成 <code>index.html</code> 後拖曳上傳，按 <code>Commit changes</code><br>
+        4. 進入 <code>Settings → Pages</code>，Branch 選 <code>main</code>，資料夾選 <code>/ (root)</code>，按 <code>Save</code><br>
+        5. 等約 1 分鐘，網址會顯示為 <code>https://你的帳號.github.io/project-tracker/</code><br>
+        之後更新只要重新上傳 <code>index.html</code> 即可，沒有次數限制。
+      </div>
+    </div>
+
+    <div style="height:14px"></div>
+    <button class="demo-btn" onclick="startDemoMode()">▶ 先用 Demo 模式體驗</button>
+    <button class="btn" style="width:100%;justify-content:center;padding:10px"
+      onclick="document.getElementById('setup-overlay').classList.remove('open')">已設定完成，關閉說明</button>
+  </div>
+</div>
+
+<!-- ════════ MAIN APP ════════ -->
+<div class="wrapper">
+<header>
+  <div class="logo-mark">PM</div>
+  <div>
+    <div class="header-title">外貿協會 表單專案追蹤</div>
+    <div class="header-subtitle">TAITRA · Supabase 協作版 <span id="mode-badge" style="color:var(--yellow)"></span></div>
+  </div>
+  <div class="header-right">
+    <div class="user-pill" onclick="changeUser()" title="點擊更換姓名">
+      <div class="user-dot"></div>
+      <span id="user-display">—</span>
+    </div>
+    <button class="btn" onclick="document.getElementById('setup-overlay').classList.add('open')" title="查看 Supabase 設定說明">⚙️ 連線設定</button>
+    <button class="btn btn-primary" onclick="openAddModal()">＋ 新增專案</button>
+    <button class="btn" onclick="openHistoryModal()">📋 修改紀錄</button>
+    <button class="btn btn-exec" onclick="openExecDashboard()">📊 董事長儀表板</button>
+    <div class="date-badge" id="live-date">—</div>
+  </div>
+</header>
+
+<div class="stats-row" id="stats-row"></div>
+
+<div class="main">
+  <nav class="sidebar">
+    <div class="sidebar-heading">全部</div>
+    <div class="sidebar-item active" onclick="filterBy('all',this)"><div class="sidebar-dot" style="background:#6b7280"></div>所有表單<span class="sidebar-count" id="cnt-all">0</span></div>
+    <div class="sidebar-heading">依進度階段</div>
+    <div class="sidebar-item" onclick="filterBy('stage-ra',this)"><div class="sidebar-dot" style="background:#9f7aea"></div>RA 需求分析<span class="sidebar-count" id="cnt-ra">0</span></div>
+    <div class="sidebar-item" onclick="filterBy('stage-sd',this)"><div class="sidebar-dot" style="background:#63b3ed"></div>SD 系統設計<span class="sidebar-count" id="cnt-sd">0</span></div>
+    <div class="sidebar-item" onclick="filterBy('stage-dev',this)"><div class="sidebar-dot" style="background:#ed8936"></div>DEV 開發<span class="sidebar-count" id="cnt-dev">0</span></div>
+    <div class="sidebar-item" onclick="filterBy('stage-sit',this)"><div class="sidebar-dot" style="background:#f6e05e"></div>SIT 測試<span class="sidebar-count" id="cnt-sit">0</span></div>
+    <div class="sidebar-item" onclick="filterBy('stage-uat',this)"><div class="sidebar-dot" style="background:#68d391"></div>UAT 驗收<span class="sidebar-count" id="cnt-uat">0</span></div>
+    <div class="sidebar-item" onclick="filterBy('stage-dep',this)"><div class="sidebar-dot" style="background:#4fd1c5"></div>DEP 部署<span class="sidebar-count" id="cnt-dep">0</span></div>
+    <div class="sidebar-item" onclick="filterBy('stage-maint',this)"><div class="sidebar-dot" style="background:#f687b3"></div>MAINT 維護<span class="sidebar-count" id="cnt-maint">0</span></div>
+    <div class="sidebar-heading">依 PM</div>
+    <div class="sidebar-item" onclick="filterBy('pm-Lily',this)"><div class="sidebar-dot" style="background:var(--accent)"></div>PM — Lily<span class="sidebar-count" id="cnt-lily">0</span></div>
+    <div class="sidebar-item" onclick="filterBy('pm-Jess',this)"><div class="sidebar-dot" style="background:var(--pink)"></div>PM — Jess<span class="sidebar-count" id="cnt-jess">0</span></div>
+    <div class="sidebar-heading">依部門</div>
+    <div class="sidebar-item" onclick="filterBy('dept-企財處',this)"><div class="sidebar-dot" style="background:#9f7aea"></div>企財處<span class="sidebar-count" id="cnt-企財處">0</span></div>
+    <div class="sidebar-item" onclick="filterBy('dept-數科中心',this)"><div class="sidebar-dot" style="background:#63b3ed"></div>數科中心<span class="sidebar-count" id="cnt-數科中心">0</span></div>
+    <div class="sidebar-item" onclick="filterBy('dept-行政處',this)"><div class="sidebar-dot" style="background:#4fd1c5"></div>行政處<span class="sidebar-count" id="cnt-行政處">0</span></div>
+  </nav>
+
+  <div class="content">
+    <div class="toolbar">
+      <input class="search-box" id="search-input" placeholder="搜尋表單名稱、代號、所屬單位、工程師…" oninput="onSearch()">
+      <div class="view-toggle">
+        <button class="view-btn active" id="btn-table" onclick="setView('table')" title="表格">☰</button>
+        <button class="view-btn" id="btn-kanban" onclick="setView('kanban')" title="看板">⊞</button>
+      </div>
+    </div>
+    <div class="section-header">
+      <div class="section-title" id="section-title">所有表單</div>
+      <div class="section-count" id="section-count">— 筆</div>
+      <div class="sync-badge syncing" id="sync-badge">● <span id="sync-text">連線中…</span></div>
+    </div>
+    <div class="table-wrap" id="table-view">
+      <table>
+        <thead><tr>
+          <th onclick="sortBy('no')">#</th>
+          <th onclick="sortBy('code')">代號</th>
+          <th onclick="sortBy('name')">表單名稱</th>
+          <th onclick="sortBy('unit')">所屬單位</th>
+          <th onclick="sortBy('eng')">AP工程師</th>
+          <th onclick="sortBy('pm')">PM</th>
+          <th>進度流程</th>
+          <th onclick="sortBy('stage')">當前階段</th>
+          <th>測試紀錄</th>
+        </tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="kanban-board" id="kanban-board"></div>
+  </div>
+</div>
+</div>
+
+<!-- ════════ DETAIL MODAL ════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeBg(event,'modal-overlay')">
+  <div class="modal">
+    <div id="modal-header-row"></div>
+    <div id="modal-body-content"></div>
+  </div>
+</div>
+
+<!-- ════════ FORM MODAL ════════ -->
+<div class="modal-overlay" id="form-overlay" onclick="closeBg(event,'form-overlay')">
+  <div class="modal">
+    <div class="modal-header-row">
+      <div style="flex:1"><div style="font-size:16px;font-weight:700" id="form-title">新增專案</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">填寫後儲存</div></div>
+      <button class="modal-close" onclick="closeForm()">✕ 關閉</button>
+    </div>
+    <div class="modal-body-inner">
+      <div class="form-grid">
+        <div class="form-row"><label class="form-label">代號</label><input class="form-input" id="f-code" placeholder="A1"></div>
+        <div class="form-row"><label class="form-label">AP 工程師</label><input class="form-input" id="f-eng" placeholder="姓名"></div>
+      </div>
+      <div class="form-row"><label class="form-label">表單名稱</label><input class="form-input" id="f-name" placeholder="完整表單名稱"></div>
+      <div class="form-row"><label class="form-label">所屬單位</label><input class="form-input" id="f-unit" placeholder="例：行政處(玉茹)"></div>
+      <div class="form-grid">
+        <div class="form-row"><label class="form-label">PM</label>
+          <select class="form-select" id="f-pm">
+            <option value="Lily">Lily</option><option value="Jess">Jess</option><option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="form-row"><label class="form-label">當前階段</label>
+          <select class="form-select" id="f-stage">
+            <option value="ra">📋 RA 需求分析</option>
+            <option value="sd">📐 SD 系統設計</option>
+            <option value="dev">⚙️ DEV 開發實作</option>
+            <option value="sit">🔬 SIT 系統整合測試</option>
+            <option value="uat">✅ UAT 驗收測試</option>
+            <option value="dep">🚀 DEP 部署上線</option>
+            <option value="maint">🔧 MAINT 維護</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row"><label class="form-label">SIT 完成輪次</label><input class="form-input form-number" type="number" id="f-sit" min="0" value="0"></div>
+        <div class="form-row"><label class="form-label">UAT 完成輪次</label><input class="form-input form-number" type="number" id="f-uat" min="0" value="0"></div>
+      </div>
+      <div class="form-row"><label class="form-label">進度備註</label><textarea class="form-textarea" id="f-statusRaw" placeholder="例：已SIT，與企財重新確認需求"></textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+        <button class="btn" onclick="closeForm()">取消</button>
+        <button class="btn btn-primary" onclick="saveProject()">💾 儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ HISTORY MODAL ════════ -->
+<div class="modal-overlay" id="history-overlay" onclick="closeBg(event,'history-overlay')">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header-row">
+      <div style="flex:1"><div style="font-size:16px;font-weight:700">修改歷史紀錄</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">最近 50 筆操作</div></div>
+      <button class="modal-close" onclick="document.getElementById('history-overlay').classList.remove('open')">✕ 關閉</button>
+    </div>
+    <div class="modal-body-inner"><div id="history-container"><div class="empty-state">載入中…</div></div></div>
+  </div>
+</div>
+
+<!-- ════════ EXEC DASHBOARD ════════ -->
+<div class="exec-overlay" id="exec-overlay">
+  <div class="exec-header">
+    <div class="logo-mark" style="width:40px;height:40px;font-size:16px">PM</div>
+    <div><div class="exec-title">外貿協會 表單專案追蹤</div><div class="exec-subtitle">Executive Dashboard · <span id="exec-date">—</span></div></div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn" onclick="window.print()">🖨️ 列印</button>
+      <button class="btn" onclick="closeExec()">✕ 關閉</button>
+    </div>
+  </div>
+  <div class="exec-body" id="exec-body"></div>
+</div>
+
+<!-- ════════ TOAST ════════ -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// ⚙️  填入你的 Supabase 設定（從 Project Settings → API 複製）
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL  = '';   // 例：'https://abcxyzabc.supabase.co'
+const SUPABASE_ANON = '';   // 例：'eyJhbGciOiJIUzI1NiIsInR5cC...'
+// ═══════════════════════════════════════════════════════
+
+// ── SEED DATA ──
+const SEED = [
+  {no:1, code:'A1',name:'財務系統帳號暨權限變更申請單',unit:'企財處(欣荷)',eng:'何美慧',pm:'Lily',statusRaw:'已SIT，與企財重新確認需求',sit:1,uat:0,stage:'sit'},
+  {no:2, code:'A2',name:'外貿協會M365服務帳號申請/異動表',unit:'數科中心(佳嘉)',eng:'林艾臻',pm:'Lily',statusRaw:'已UAT，待上線',sit:1,uat:1,stage:'dep'},
+  {no:3, code:'A3',name:'EBS 帳號申請表',unit:'數科中心(佳嘉)',eng:'林艾臻',pm:'Lily',statusRaw:'已UAT，待上線',sit:1,uat:1,stage:'dep'},
+  {no:4, code:'A4',name:'員工會外訓練申請表',unit:'行政處(玉茹)',eng:'林艾臻',pm:'Jess',statusRaw:'已開發，待SIT',sit:0,uat:0,stage:'dev'},
+  {no:5, code:'B1',name:'貿協育嬰留職停薪申請表',unit:'行政處(冠穎)',eng:'林艾臻',pm:'Lily',statusRaw:'已UAT，待提供人事組自由測試',sit:1,uat:1,stage:'uat'},
+  {no:6, code:'B2',name:'員工國內在職進修申請表',unit:'行政處(玉茹)',eng:'林艾臻',pm:'Jess',statusRaw:'已開發，待SIT',sit:0,uat:0,stage:'dev'},
+  {no:7, code:'B3',name:'員工特殊語言訓練申請表',unit:'行政處(玉茹)',eng:'鄭丞祐',pm:'Jess',statusRaw:'已開發，待SIT',sit:0,uat:0,stage:'dev'},
+  {no:8, code:'B4',name:'本會電腦相關設備汰換申請',unit:'數科中心(永坤)',eng:'鄭丞祐',pm:'Lily',statusRaw:'已SIT，修改中',sit:1,uat:0,stage:'sit'},
+  {no:9, code:'C1',name:'外貿協會GA及GTM代碼申請表',unit:'數科中心(玉茹)',eng:'陳雅梅',pm:'Jess',statusRaw:'已開發，待SIT',sit:0,uat:0,stage:'dev'},
+  {no:10,code:'C2',name:'銀行往來文件及納稅證明申請單',unit:'行政處(出納)',eng:'陳雅梅',pm:'Lily',statusRaw:'已SIT，修改中',sit:1,uat:0,stage:'sit'},
+  {no:11,code:'C3',name:'世貿育嬰留職停薪申請表',unit:'行政處(曉薇)',eng:'林艾臻',pm:'Lily',statusRaw:'已UAT，待提供人事組自由測試',sit:1,uat:1,stage:'uat'},
+  {no:12,code:'C4',name:'單位自辦專業訓練聘請講師申請表',unit:'行政處(玉茹)',eng:'何美慧',pm:'Lily',statusRaw:'開發中',sit:0,uat:0,stage:'dev'},
+];
+
+const STAGES=[
+  {key:'ra',  label:'RA',   full:'需求分析',          color:'#9f7aea',icon:'📋'},
+  {key:'sd',  label:'SD',   full:'系統設計',           color:'#63b3ed',icon:'📐'},
+  {key:'dev', label:'DEV',  full:'開發實作',           color:'#ed8936',icon:'⚙️'},
+  {key:'sit', label:'SIT',  full:'系統整合測試',       color:'#f6e05e',icon:'🔬'},
+  {key:'uat', label:'UAT',  full:'驗收測試',           color:'#68d391',icon:'✅'},
+  {key:'dep', label:'DEP',  full:'部署上線',           color:'#4fd1c5',icon:'🚀'},
+  {key:'maint',label:'MAINT',full:'維護',              color:'#f687b3',icon:'🔧'},
+];
+const ORDER=STAGES.map(s=>s.key);
+
+// ── APP STATE ──
+let sb=null, projects=[], isDemoMode=false;
+let currentUser='', editingId=null;
+let currentFilter='all', currentView='table', currentSort={key:'no',dir:1}, searchQ='';
+
+// ── BOOT ──
+document.addEventListener('DOMContentLoaded',()=>{
+  tick(); setInterval(tick,30000);
+  const saved=localStorage.getItem('pt_user');
+  if(saved){ currentUser=saved; hideLogin(); initApp(); }
+  else showLogin();
+  document.getElementById('login-name').focus();
+});
+
+function showLogin(){ document.getElementById('login-overlay').style.display='flex'; }
+function hideLogin(){ document.getElementById('login-overlay').style.display='none'; document.getElementById('user-display').textContent=currentUser; }
+
+function doLogin(){
+  const v=document.getElementById('login-name').value.trim();
+  if(!v){ showToast('請輸入姓名','error'); return; }
+  currentUser=v; localStorage.setItem('pt_user',v);
+  hideLogin(); initApp();
+}
+function changeUser(){
+  const n=prompt('更換姓名：',currentUser);
+  if(n&&n.trim()){ currentUser=n.trim(); localStorage.setItem('pt_user',currentUser); document.getElementById('user-display').textContent=currentUser; showToast('已更換為 '+currentUser,'info'); }
+}
+
+function initApp(){
+  if(!SUPABASE_URL||!SUPABASE_ANON){
+    // 未填 Supabase 設定 → 直接進 Demo 模式，不擋路
+    startDemoMode();
+    return;
+  }
+  try{
+    sb=supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    setSyncStatus('syncing','連線中…');
+    loadAndSubscribe();
+  }catch(e){ console.error(e); startDemoMode(); }
+}
+
+// ── SUPABASE: LOAD + REALTIME ──
+async function loadAndSubscribe(){
+  const {data,error}=await sb.from('projects').select('*').order('no');
+  if(error){ setSyncStatus('error','連線失敗'); showToast('Supabase 連線失敗：'+error.message,'error'); startDemoMode(); return; }
+
+  if(data.length===0){
+    // First run: seed data
+    const {error:ie}=await sb.from('projects').insert(SEED.map(d=>({...d,updatedBy:currentUser,updatedAt:new Date().toISOString()})));
+    if(ie) console.warn('Seed error',ie);
+    const {data:d2}=await sb.from('projects').select('*').order('no');
+    projects=(d2||[]).map(enrich);
+  } else {
+    projects=data.map(enrich);
+  }
+  setSyncStatus('ok','即時同步中');
+  renderAll();
+
+  // Realtime subscription
+  sb.channel('projects-changes')
+    .on('postgres_changes',{event:'*',schema:'public',table:'projects'},payload=>{
+      handleRealtimeProject(payload);
+    })
+    .subscribe(status=>{
+      if(status==='SUBSCRIBED') setSyncStatus('ok','即時同步中');
+      else if(status==='CHANNEL_ERROR') setSyncStatus('error','同步中斷');
+    });
+}
+
+function handleRealtimeProject(payload){
+  const {eventType,new:newRow,old:oldRow}=payload;
+  if(eventType==='INSERT'){
+    projects=[...projects.filter(p=>p.id!==newRow.id),enrich(newRow)].sort((a,b)=>a.no-b.no);
+    showToast('新專案已同步：'+newRow.name,'info');
+  } else if(eventType==='UPDATE'){
+    projects=projects.map(p=>p.id===newRow.id?enrich(newRow):p);
+    showToast((newRow.updatedBy||'有人')+'更新了：'+newRow.name,'info');
+  } else if(eventType==='DELETE'){
+    projects=projects.filter(p=>p.id!==oldRow.id);
+  }
+  renderAll();
+}
+
+function enrich(d){
+  const stage=d.stage||'ra';
+  return {...d, stage, stageIdx:ORDER.indexOf(stage), deptKey:(d.unit||'').replace(/\(.*\)/,'').trim()};
+}
+
+// ── DEMO MODE ──
+function startDemoMode(){
+  document.getElementById('setup-overlay').classList.remove('open');
+  isDemoMode=true;
+  document.getElementById('mode-badge').textContent='[Demo 模式]';
+  setSyncStatus('ok','Demo 模式');
+  document.getElementById('sync-badge').style.cssText='color:var(--yellow);background:rgba(246,224,94,.1);border-color:rgba(246,224,94,.2)';
+  const stored=localStorage.getItem('pt_demo');
+  projects=stored?JSON.parse(stored):SEED.map(enrich);
+  renderAll();
+}
+function saveDemo(){ if(isDemoMode) localStorage.setItem('pt_demo',JSON.stringify(projects)); }
+
+// ── CRUD ──
+async function saveProject(){
+  const code=document.getElementById('f-code').value.trim();
+  const name=document.getElementById('f-name').value.trim();
+  if(!code||!name){ showToast('請填入代號和名稱','error'); return; }
+
+  const data={
+    code, name,
+    unit:  document.getElementById('f-unit').value.trim(),
+    eng:   document.getElementById('f-eng').value.trim(),
+    pm:    document.getElementById('f-pm').value,
+    stage: document.getElementById('f-stage').value,
+    sit:   parseInt(document.getElementById('f-sit').value)||0,
+    uat:   parseInt(document.getElementById('f-uat').value)||0,
+    statusRaw: document.getElementById('f-statusRaw').value.trim(),
+    updatedBy: currentUser,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if(editingId){
+    const old=projects.find(p=>p.id===editingId);
+    const changes=[];
+    if(old){
+      const fields={stage:'階段',statusRaw:'進度備註',sit:'SIT輪次',uat:'UAT輪次',pm:'PM',eng:'AP工程師',unit:'所屬單位'};
+      Object.entries(fields).forEach(([k,label])=>{
+        if(String(old[k])!==String(data[k])) changes.push({field:label,old:old[k],new:data[k]});
+      });
+    }
+    await upsertProject(editingId, data);
+    if(changes.length) await addHistory(editingId, data.name, changes, 'edit');
+    showToast('已更新：'+name,'success');
+  } else {
+    const maxNo=projects.reduce((m,p)=>Math.max(m,p.no||0),0);
+    data.no=maxNo+1;
+    const id=await insertProject(data);
+    await addHistory(id, name, [], 'create');
+    showToast('已新增：'+name,'success');
+  }
+  closeForm();
+}
+
+async function upsertProject(id, data){
+  if(isDemoMode){
+    projects=projects.map(p=>p.id===id?enrich({...p,...data}):p);
+    saveDemo(); renderAll();
+  } else {
+    await sb.from('projects').update(data).eq('id',id);
+    // realtime will update UI
+  }
+}
+
+async function insertProject(data){
+  if(isDemoMode){
+    const newId=Date.now();
+    projects.push(enrich({id:newId,...data}));
+    saveDemo(); renderAll();
+    return newId;
+  } else {
+    const {data:rows,error}=await sb.from('projects').insert(data).select();
+    if(error){ showToast('儲存失敗：'+error.message,'error'); return null; }
+    return rows[0]?.id;
+  }
+}
+
+async function deleteProject(id, name){
+  if(!confirm('確認刪除「'+name+'」？此操作無法復原。')) return;
+  if(isDemoMode){
+    projects=projects.filter(p=>p.id!==id);
+    saveDemo(); renderAll();
+  } else {
+    await sb.from('projects').delete().eq('id',id);
+  }
+  await addHistory(id, name, [], 'delete');
+  document.getElementById('modal-overlay').classList.remove('open');
+  showToast('已刪除：'+name,'info');
+}
+
+async function addHistory(docId, projectName, changes, type){
+  const entry={docId:String(docId), projectName, changes, type, user:currentUser, ts:new Date().toISOString()};
+  if(isDemoMode){
+    const h=JSON.parse(localStorage.getItem('pt_history')||'[]');
+    h.unshift(entry); localStorage.setItem('pt_history',JSON.stringify(h.slice(0,200)));
+  } else {
+    await sb.from('history').insert(entry);
+  }
+}
+
+// ── RENDER ──
+function renderAll(){ buildStats(); buildSidebarCounts(); render(); }
+
+function buildStats(){
+  const defs=[
+    {label:'總表單',filter:'all',num:projects.length,color:'var(--accent)',sub:'全部項目'},
+    {label:'開發中',filter:'stage-dev',num:projects.filter(p=>p.stage==='dev').length,color:'var(--orange)',sub:'DEV'},
+    {label:'SIT測試',filter:'stage-sit',num:projects.filter(p=>p.stage==='sit').length,color:'var(--yellow)',sub:'測試中'},
+    {label:'UAT驗收',filter:'stage-uat',num:projects.filter(p=>p.stage==='uat').length,color:'var(--green)',sub:'驗收中'},
+    {label:'待上線',filter:'stage-dep',num:projects.filter(p=>p.stage==='dep').length,color:'var(--teal)',sub:'DEP'},
+    {label:'SIT完成',filter:'',num:projects.filter(p=>p.sit>0).length,color:'var(--yellow)',sub:'累計專案數'},
+    {label:'UAT完成',filter:'',num:projects.filter(p=>p.uat>0).length,color:'var(--green)',sub:'累計專案數'},
+  ];
+  document.getElementById('stats-row').innerHTML=defs.map((s,i)=>`
+    <div class="stat-card${i===0?' active':''}" onclick="${s.filter?`filterStatCard('${s.filter}',this)`:''}" style="${s.filter?'':'cursor:default'}">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-num" style="color:${s.color}">${s.num}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join('');
+}
+
+function buildSidebarCounts(){
+  ORDER.forEach(s=>{ const el=document.getElementById('cnt-'+s); if(el) el.textContent=projects.filter(p=>p.stage===s).length; });
+  document.getElementById('cnt-all').textContent=projects.length;
+  document.getElementById('cnt-lily').textContent=projects.filter(p=>p.pm==='Lily').length;
+  document.getElementById('cnt-jess').textContent=projects.filter(p=>p.pm==='Jess').length;
+  ['企財處','數科中心','行政處'].forEach(d=>{ const el=document.getElementById('cnt-'+d); if(el) el.textContent=projects.filter(p=>p.deptKey===d).length; });
+}
+
+function filterStatCard(f,el){ filterBy(f,null); document.querySelectorAll('.stat-card').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
+function filterBy(f,el){ currentFilter=f; document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active')); if(el) el.classList.add('active'); render(); }
+function onSearch(){ searchQ=document.getElementById('search-input').value.toLowerCase(); render(); }
+function sortBy(k){ if(currentSort.key===k) currentSort.dir*=-1; else{currentSort.key=k;currentSort.dir=1;} render(); }
+
+function getFiltered(){
+  let data=[...projects];
+  if(searchQ) data=data.filter(p=>[p.name,p.code,p.unit,p.eng,p.pm].some(v=>(v||'').toLowerCase().includes(searchQ)));
+  if(currentFilter!=='all'){
+    if(currentFilter.startsWith('stage-')) data=data.filter(p=>p.stage===currentFilter.slice(6));
+    else if(currentFilter.startsWith('pm-')) data=data.filter(p=>p.pm===currentFilter.slice(3));
+    else if(currentFilter.startsWith('dept-')) data=data.filter(p=>p.deptKey===currentFilter.slice(5));
+  }
+  const {key:k,dir:d}=currentSort;
+  data.sort((a,b)=>{ let va=a[k]||'',vb=b[k]||''; if(typeof va==='string'){va=va.toLowerCase();vb=vb.toLowerCase();} return va<vb?-d:va>vb?d:0; });
+  return data;
+}
+
+function render(){
+  const data=getFiltered();
+  const labels={all:'所有表單','stage-ra':'RA 需求分析','stage-sd':'SD 系統設計','stage-dev':'DEV 開發','stage-sit':'SIT 測試','stage-uat':'UAT 驗收','stage-dep':'DEP 部署','stage-maint':'MAINT 維護','pm-Lily':'PM — Lily','pm-Jess':'PM — Jess','dept-企財處':'企財處','dept-數科中心':'數科中心','dept-行政處':'行政處'};
+  document.getElementById('section-title').textContent=labels[currentFilter]||'搜尋結果';
+  document.getElementById('section-count').textContent=data.length+' 筆';
+  currentView==='table'?renderTable(data):renderKanban(data);
+}
+
+function stagePipeline(idx){
+  return STAGES.map((s,i)=>{
+    const cls=i<idx?'done':i===idx?'active':'pending';
+    const col=s.color, bg=cls==='done'?col+'33':cls==='active'?col+'55':'', tc=cls==='pending'?'#374151':col;
+    return `<div class="stage-step ${cls}" style="background:${bg};color:${tc}" title="${s.full}">${s.label}</div>`;
+  }).join('');
+}
+function statusBadge(key){
+  const s=STAGES.find(x=>x.key===key); if(!s) return '';
+  return `<span class="status-badge status-${key}"><span class="status-dot" style="background:${s.color}"></span>${s.icon} ${s.label}</span>`;
+}
+function testBadges(sit,uat){
+  if(!sit&&!uat) return '<span class="test-badge none">未測試</span>';
+  return (sit?'<span class="test-badge sit">SIT ✓</span>':'')+(uat?'<span class="test-badge uat">UAT ✓</span>':'');
+}
+
+function renderTable(data){
+  const tb=document.getElementById('table-body');
+  if(!data.length){ tb.innerHTML='<tr><td colspan="9" class="empty-state">無符合條件的項目</td></tr>'; return; }
+  tb.innerHTML=data.map(p=>`
+    <tr class="fade-in" onclick="openDetail(${p.id})">
+      <td style="color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:11px">${p.no}</td>
+      <td><span class="code-badge">${p.code||''}</span></td>
+      <td><div class="task-name">${p.name||''}</div></td>
+      <td><div class="task-unit">${p.unit||''}</div></td>
+      <td><span class="person-tag">${p.eng||''}</span></td>
+      <td><span class="person-tag" style="color:${p.pm==='Lily'?'var(--accent)':'var(--pink)'}">${p.pm||''}</span></td>
+      <td style="min-width:190px"><div class="stage-pipeline">${stagePipeline(p.stageIdx)}</div></td>
+      <td>${statusBadge(p.stage)}</td>
+      <td><div class="test-badges">${testBadges(p.sit,p.uat)}</div></td>
+    </tr>`).join('');
+}
+
+function renderKanban(data){
+  const grp={}; STAGES.forEach(s=>grp[s.key]=[]);
+  data.forEach(p=>{ if(grp[p.stage]) grp[p.stage].push(p); });
+  document.getElementById('kanban-board').innerHTML=STAGES.map(s=>`
+    <div class="kanban-col">
+      <div class="kanban-col-header"><span>${s.icon}</span><span class="kanban-col-title" style="color:${s.color}">${s.label}</span><span class="kanban-col-count">${grp[s.key].length}</span></div>
+      <div class="kanban-cards">
+        ${grp[s.key].length?grp[s.key].map(p=>`
+          <div class="kanban-card" onclick="openDetail(${p.id})">
+            <div class="kanban-card-code">${p.code||''} · ${p.deptKey||''}</div>
+            <div class="kanban-card-title">${p.name||''}</div>
+            <div class="kanban-card-footer">
+              <span class="kanban-card-pm" style="color:${p.pm==='Lily'?'var(--accent)':'var(--pink)'}">${p.pm||''}</span>
+              <span class="kanban-card-eng">${p.eng||''}</span>
+            </div>
+          </div>`).join(''):'<div style="color:var(--text-muted);font-size:12px;text-align:center;padding:12px 0">—</div>'}
+      </div>
+    </div>`).join('');
+}
+
+function setView(v){
+  currentView=v;
+  document.getElementById('table-view').style.display=v==='table'?'':'none';
+  document.getElementById('kanban-board').style.display=v==='kanban'?'grid':'none';
+  document.getElementById('btn-table').classList.toggle('active',v==='table');
+  document.getElementById('btn-kanban').classList.toggle('active',v==='kanban');
+  render();
+}
+
+// ── DETAIL MODAL ──
+function openDetail(id){
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  const pct=Math.round(((p.stageIdx+1)/STAGES.length)*100);
+  document.getElementById('modal-header-row').innerHTML=`
+    <div class="modal-header-row">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+          <span class="code-badge" style="font-size:12px">${p.code||''}</span>${statusBadge(p.stage)}
+          <span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${p.deptKey||''}</span>
+        </div>
+        <div style="font-size:17px;font-weight:700;line-height:1.35;margin-bottom:4px">${p.name||''}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${p.unit||''}</div>
+        <div class="progress-bar-wrap" style="max-width:360px;margin-top:10px"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;font-family:'JetBrains Mono',monospace">整體進度 ${pct}% (${p.stageIdx+1}/${STAGES.length} 階段)</div>
+        ${p.updatedBy?`<div style="font-size:11px;color:var(--text-muted);margin-top:4px">最後更新：${p.updatedBy} · ${p.updatedAt?new Date(p.updatedAt).toLocaleString('zh-TW'):''}</div>`:''}
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('open')">✕</button>
+    </div>`;
+
+  const stageItems=STAGES.map((st,i)=>{
+    const cls=i<p.stageIdx?'done':i===p.stageIdx?'active':'pending';
+    let statusEl=cls==='done'?`<span class="status-badge" style="background:rgba(104,211,145,.1);color:#68d391;border:1px solid rgba(104,211,145,.2);font-size:11px">✓ 完成</span>`:
+      cls==='active'?`<span class="status-badge status-sit" style="font-size:11px">⚡ 進行中</span>`:
+      `<span style="font-size:11px;color:var(--text-muted)">待開始</span>`;
+    let sub=st.full;
+    if(st.key==='sit') sub='系統整合測試 — 已完成 '+(p.sit||0)+' 輪次';
+    if(st.key==='uat') sub='驗收測試 — 已完成 '+(p.uat||0)+' 輪次';
+    return `<div class="stage-detail-item ${cls}"><span class="stage-detail-icon">${st.icon}</span><div><div class="stage-detail-name" style="color:${st.color}">${st.label}</div><div class="stage-detail-sub">${sub}</div></div><div class="stage-detail-status">${statusEl}</div></div>`;
+  }).join('');
+
+  document.getElementById('modal-body-content').innerHTML=`
+    <div class="modal-body-inner">
+      <div class="modal-section"><div class="modal-section-title">基本資訊</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="info-item-label">AP 工程師</div><div class="info-item-value">${p.eng||'—'}</div></div>
+          <div class="info-item"><div class="info-item-label">PM</div><div class="info-item-value" style="color:${p.pm==='Lily'?'var(--accent)':'var(--pink)'}">${p.pm||'—'}</div></div>
+          <div class="info-item"><div class="info-item-label">所屬單位</div><div class="info-item-value">${p.unit||'—'}</div></div>
+          <div class="info-item"><div class="info-item-label">進度備註</div><div class="info-item-value" style="font-size:12px;color:var(--text-dim)">${p.statusRaw||'—'}</div></div>
+        </div>
+      </div>
+      <div class="modal-section"><div class="modal-section-title">測試紀錄</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="info-item-label">SIT 測試</div><div class="info-item-value" style="color:${p.sit?'var(--yellow)':'var(--text-muted)'}">${p.sit?'✓ 已完成 '+p.sit+' 輪次':'— 尚未進行'}</div></div>
+          <div class="info-item"><div class="info-item-label">UAT 驗收</div><div class="info-item-value" style="color:${p.uat?'var(--green)':'var(--text-muted)'}">${p.uat?'✓ 已完成 '+p.uat+' 輪次':'— 尚未進行'}</div></div>
+        </div>
+      </div>
+      <div class="modal-section"><div class="modal-section-title">開發流程 — 全 ${STAGES.length} 個階段</div>
+        <div class="stage-detail-list">${stageItems}</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="openEditModal(${p.id})">✏️ 編輯</button>
+        <button class="btn btn-danger" onclick="deleteProject(${p.id},'${(p.name||'').replace(/'/g,''')}')">🗑 刪除</button>
+      </div>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+// ── FORM MODAL ──
+function openAddModal(){
+  editingId=null;
+  document.getElementById('form-title').textContent='新增專案';
+  ['code','name','unit','eng','statusRaw'].forEach(f=>document.getElementById('f-'+f).value='');
+  document.getElementById('f-pm').value='Lily';
+  document.getElementById('f-stage').value='ra';
+  document.getElementById('f-sit').value='0';
+  document.getElementById('f-uat').value='0';
+  document.getElementById('form-overlay').classList.add('open');
+}
+
+function openEditModal(id){
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  editingId=id;
+  document.getElementById('form-title').textContent='編輯：'+p.name;
+  document.getElementById('f-code').value=p.code||'';
+  document.getElementById('f-name').value=p.name||'';
+  document.getElementById('f-unit').value=p.unit||'';
+  document.getElementById('f-eng').value=p.eng||'';
+  document.getElementById('f-pm').value=p.pm||'Lily';
+  document.getElementById('f-stage').value=p.stage||'ra';
+  document.getElementById('f-sit').value=p.sit||0;
+  document.getElementById('f-uat').value=p.uat||0;
+  document.getElementById('f-statusRaw').value=p.statusRaw||'';
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('form-overlay').classList.add('open');
+}
+
+function closeForm(){ document.getElementById('form-overlay').classList.remove('open'); }
+
+// ── HISTORY MODAL ──
+async function openHistoryModal(){
+  document.getElementById('history-overlay').classList.add('open');
+  let items=[];
+  if(isDemoMode){
+    items=JSON.parse(localStorage.getItem('pt_history')||'[]');
+  } else {
+    const {data,error}=await sb.from('history').select('*').order('ts',{ascending:false}).limit(50);
+    if(error){ showToast('無法載入歷史','error'); return; }
+    items=data||[];
+  }
+  const c=document.getElementById('history-container');
+  if(!items.length){ c.innerHTML='<div class="empty-state">尚無修改紀錄</div>'; return; }
+  c.innerHTML='<div class="history-list">'+items.map(h=>{
+    const timeStr=new Date(h.ts).toLocaleString('zh-TW');
+    let what='';
+    if(h.type==='create') what=`<span class="htag create">新增</span> 建立了此專案`;
+    else if(h.type==='delete') what=`<span class="htag del">刪除</span> 刪除了此專案`;
+    else if(h.changes?.length) what=h.changes.map(c=>`修改 <span class="htag field">${c.field}</span> <span class="htag old">${c.old||'—'}</span> → <span class="htag new">${c.new||'—'}</span>`).join('<br>');
+    else what='更新了專案資料';
+    const av=(h.user||'?').charAt(0).toUpperCase();
+    return `<div class="history-item">
+      <div class="history-avatar">${av}</div>
+      <div class="history-content">
+        <div class="history-who">${h.user||'—'} · <span style="color:var(--text-muted);font-weight:400">${h.projectName||''}</span></div>
+        <div class="history-what">${what}</div>
+        <div class="history-when">${timeStr}</div>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ── EXEC DASHBOARD ──
+function openExecDashboard(){
+  document.getElementById('exec-overlay').classList.add('open');
+  document.getElementById('exec-date').textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
+  const total=projects.length, done=projects.filter(p=>['dep','maint'].includes(p.stage)).length,
+    testing=projects.filter(p=>['sit','uat'].includes(p.stage)).length,
+    inDev=projects.filter(p=>p.stage==='dev').length, pct=total?Math.round(done/total*100):0;
+
+  const stageRows=STAGES.map(s=>{
+    const n=projects.filter(p=>p.stage===s.key).length, w=total?Math.round(n/total*100):0;
+    return `<div class="exec-stage-row"><div class="exec-stage-label">${s.icon} ${s.label}</div><div class="exec-stage-bar-wrap"><div class="exec-stage-bar-fill" style="width:${w}%;background:${s.color}"></div></div><div class="exec-stage-count">${n}</div></div>`;
+  }).join('');
+
+  const pms=[...new Set(projects.map(p=>p.pm).filter(Boolean))];
+  const pmRows=pms.map(pm=>{
+    const list=projects.filter(p=>p.pm===pm), dn=list.filter(p=>['dep','maint'].includes(p.stage)).length;
+    return `<div class="exec-project-row"><div class="exec-project-name" style="font-weight:600;color:var(--text)">${pm}</div><div style="font-size:12px;color:var(--text-muted);margin-left:auto">${list.length} 個 · ${dn} 完成</div></div>`;
+  }).join('');
+
+  const allRows=projects.map(p=>`
+    <div class="exec-project-row">
+      <span class="code-badge" style="font-size:10px">${p.code||''}</span>
+      <div class="exec-project-name" style="margin-left:8px">${p.name||''}</div>
+      <div style="font-size:11px;color:var(--text-muted)">${p.eng||''}</div>
+      ${statusBadge(p.stage)}
+    </div>`).join('');
+
+  document.getElementById('exec-body').innerHTML=`
+    <div class="exec-kpi-row">
+      <div class="exec-kpi"><div class="exec-kpi-label">總專案數</div><div class="exec-kpi-num" style="color:var(--accent)">${total}</div><div class="exec-kpi-sub">本期追蹤中</div><div class="exec-kpi-bar"><div class="exec-kpi-bar-fill" style="width:100%;background:var(--accent)"></div></div></div>
+      <div class="exec-kpi"><div class="exec-kpi-label">完成 / 上線</div><div class="exec-kpi-num" style="color:var(--teal)">${done}</div><div class="exec-kpi-sub">完成率 ${pct}%</div><div class="exec-kpi-bar"><div class="exec-kpi-bar-fill" style="width:${pct}%;background:var(--teal)"></div></div></div>
+      <div class="exec-kpi"><div class="exec-kpi-label">測試中</div><div class="exec-kpi-num" style="color:var(--yellow)">${testing}</div><div class="exec-kpi-sub">SIT + UAT</div><div class="exec-kpi-bar"><div class="exec-kpi-bar-fill" style="width:${total?Math.round(testing/total*100):0}%;background:var(--yellow)"></div></div></div>
+      <div class="exec-kpi"><div class="exec-kpi-label">開發中</div><div class="exec-kpi-num" style="color:var(--orange)">${inDev}</div><div class="exec-kpi-sub">DEV 階段</div><div class="exec-kpi-bar"><div class="exec-kpi-bar-fill" style="width:${total?Math.round(inDev/total*100):0}%;background:var(--orange)"></div></div></div>
+    </div>
+    <div class="exec-grid">
+      <div class="exec-panel"><div class="exec-section-title">各階段分佈</div>${stageRows}</div>
+      <div class="exec-panel"><div class="exec-section-title">PM 工作量</div>${pmRows}</div>
+    </div>
+    <div class="exec-panel" style="margin-bottom:28px"><div class="exec-section-title">全部專案狀態一覽</div>${allRows}</div>`;
+}
+function closeExec(){ document.getElementById('exec-overlay').classList.remove('open'); }
+
+// ── HELPERS ──
+function closeBg(e,id){ if(e.target===document.getElementById(id)) document.getElementById(id).classList.remove('open'); }
+function setSyncStatus(state,text){
+  const badge=document.getElementById('sync-badge'), txt=document.getElementById('sync-text');
+  txt.textContent=text;
+  badge.className='sync-badge'+(state==='syncing'?' syncing':state==='error'?' error':'');
+}
+function showToast(msg,type='info'){
+  const c=document.getElementById('toast-container'), t=document.createElement('div');
+  t.className='toast '+type;
+  t.innerHTML={success:'✅',error:'❌',info:'ℹ️'}[type]+' '+msg;
+  c.appendChild(t); setTimeout(()=>t.remove(),3500);
+}
+function tick(){
+  const n=new Date();
+  document.getElementById('live-date').textContent=n.toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'})+' '+n.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+}
+</script>
+</body>
+</html>
